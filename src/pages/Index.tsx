@@ -3,6 +3,7 @@ import { AquariumCanvas } from '@/components/AquariumCanvas';
 import { AddFishButton } from '@/components/AddFishButton';
 import { FishInfoToast } from '@/components/FishInfoToast';
 import { HelpOverlay } from '@/components/HelpOverlay';
+import { Fishing } from '@/components/Fishing';
 import { useFishManager } from '@/hooks/useFishManager';
 import { Fish } from '@/types/fish';
 
@@ -17,6 +18,7 @@ const Index = () => {
   const { fish, addFish, removeFish, updateFish, isLoaded } = useFishManager(dimensions.width, dimensions.height);
   const [toast, setToast] = useState<{ message: string; type: 'add' | 'remove' } | null>(null);
   const [showHelp, setShowHelp] = useState(false);
+  const [isFishing, setIsFishing] = useState(false);
 
   // Show help on first visit
   useEffect(() => {
@@ -28,12 +30,28 @@ const Index = () => {
   }, [isLoaded]);
 
   const handleAddFish = useCallback(() => {
-    const newFish = addFish();
-    setToast({ 
-      message: `Added a ${SPECIES_NAMES[newFish.species]}!`, 
-      type: 'add' 
-    });
-  }, [addFish]);
+    setIsFishing(true);
+    // const newFish = addFish();
+    // setToast({ 
+    //   message: `Added a ${SPECIES_NAMES[newFish.species]}!`, 
+    //   type: 'add' 
+    // });
+  }, []);
+
+  const handleFishingComplete = useCallback(
+    (success: boolean) => {
+      setIsFishing(false);
+  
+      if (!success) return;
+  
+      const newFish = addFish();
+      setToast({
+        message: `Added a ${SPECIES_NAMES[newFish.species]}!`,
+        type: 'add',
+      });
+    },
+    [addFish]
+  );
 
   const handleRemoveFish = useCallback((id: string) => {
     const fishToRemove = fish.find(f => f.id === id);
@@ -87,6 +105,11 @@ const Index = () => {
           onComplete={() => setToast(null)}
         />
       )}
+
+      <Fishing
+        isVisible={isFishing}
+        onComplete={handleFishingComplete}
+      />
 
       <HelpOverlay 
         isVisible={showHelp} 
