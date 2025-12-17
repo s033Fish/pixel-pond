@@ -5,18 +5,22 @@ import { updateFishBehavior } from '@/lib/fishBehavior';
 import fishTankBg from '@/assets/fish-tank-bg.png';
 import pufferfishImg from '@/assets/pufferfish.png';
 import goldfishImg from '@/assets/goldfish.png';
+import betaImg from '@/assets/betafish.png';
 import tetraImg from '@/assets/tetra.png';
+
 
 const FISH_TEXTURES: Record<string, string> = {
   pufferfish: pufferfishImg,
   goldfish: goldfishImg,
+  beta: betaImg,
   tetra: tetraImg,
 };
 
 const FISH_SCALES: Record<string, number> = {
   pufferfish: 0.15,
   goldfish: 0.18,
-  tetra: 0.14,
+  beta: 0.14,
+  tetra: 0.12,
 };
 
 interface AquariumCanvasProps {

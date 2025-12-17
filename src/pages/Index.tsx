@@ -10,7 +10,7 @@ import { Fish } from '@/types/fish';
 const SPECIES_NAMES: Record<string, string> = {
   pufferfish: 'Pufferfish',
   goldfish: 'Goldfish',
-  tetra: 'Neon Tetra',
+  beta: 'Beta Fish',
 };
 
 const Index = () => {

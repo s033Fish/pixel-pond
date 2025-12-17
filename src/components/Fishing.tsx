@@ -1,147 +1,72 @@
 import { useEffect, useRef, useState } from "react";
-import { cn } from "@/lib/utils";
 
 interface FishingProps {
   isVisible: boolean;
   onComplete: (success: boolean) => void;
 }
 
-const SPECIES_NAMES: Record<string, string> = {
-  pufferfish: 'Pufferfish',
-  goldfish: 'Goldfish',
-  tetra: 'Neon Tetra',
-};
-
 export function Fishing({ isVisible, onComplete }: FishingProps) {
   if (!isVisible) return null;
 
-  // ----- FISH POSITION -----
-  const [fishY, setFishY] = useState(200); // px from top
-  const fishYRef = useRef(fishY);
-  const fishVelocityRef = useRef(0);
-
-  // ----- PLAYER BAR -----
-  const barHeight = 80; // green bar size
+  // --------------------
+  // CONSTANTS
+  // --------------------
   const containerHeight = 300;
-  const [barY, setBarY] = useState(140);
-  const barYRef = useRef(barY);
-  const holdingRef = useRef(false);
+  const barHeight = 80;
+  const fishSize = 20;
 
-  // ----- CATCH METER -----
-  const [progress, setProgress] = useState(5); // 0–100
-  const progressRef = useRef(5);
+  // --------------------
+  // REFS (GAME STATE)
+  // --------------------
+  const fishY = useRef(200);
+  const fishVelocity = useRef(0);
 
+  const barY = useRef(140);
+  const holding = useRef(false);
+
+  const progress = useRef(5);
+  const finished = useRef(false);
+
+  // --------------------
+  // STATE (UI ONLY)
+  // --------------------
+  const [progressUI, setProgressUI] = useState(5);
+
+  // --------------------
+  // DOM REFS
+  // --------------------
+  const fishEl = useRef<HTMLDivElement>(null);
+  const barEl = useRef<HTMLDivElement>(null);
+
+  // --------------------
+  // RESET ON START
+  // --------------------
   useEffect(() => {
-    if (!isVisible) return;
-  
-    progressRef.current = 5;
-    setProgress(5);
-  
-    fishVelocityRef.current = 0;
-  
-    setFishY(200);
-    setBarY(140);
+    fishY.current = 200;
+    fishVelocity.current = 0;
+    barY.current = 140;
+    progress.current = 5;
+    finished.current = false;
+
+    setProgressUI(5);
+
+    if (fishEl.current) {
+      fishEl.current.style.transform = `translateY(${fishY.current}px)`;
+    }
+    if (barEl.current) {
+      barEl.current.style.transform = `translateY(${barY.current}px)`;
+    }
   }, [isVisible]);
 
-  useEffect(() => {
-    fishYRef.current = fishY;
-  }, [fishY]);
-  
-  useEffect(() => {
-    barYRef.current = barY;
-  }, [barY]);
-
-  // Game loop
-  useEffect(() => {
-    let lastTime = performance.now();
-
-    const loop = (t: number) => {
-      const dt = (t - lastTime) / 16; // Rough normalization
-      lastTime = t;
-
-      // --------------------------
-      // CHECK FOR WIN
-      // --------------------------
-
-      if (progressRef.current >= 100) {
-        onComplete(true);   // success
-        return;
-      }
-      
-      if (progressRef.current <= 0) {
-        onComplete(false);  // fail
-        return;
-      }
-
-      // --------------------------
-      // FISH MOVEMENT (random bob)
-      // --------------------------
-      let vel = fishVelocityRef.current;
-      vel += (Math.random() - 0.5) * 0.5; // random acceleration
-      vel = Math.max(Math.min(vel, 2), -2);
-      fishVelocityRef.current = vel;
-
-      setFishY((prev) => {
-        let ny = prev + vel;
-        if (ny < 0) ny = 0;
-        if (ny > containerHeight - 20) ny = containerHeight - 20;
-        return ny;
-      });
-
-      // --------------------------
-      // PLAYER BAR MOVEMENT
-      // --------------------------
-      setBarY((prev) => {
-        let ny = prev + (holdingRef.current ? -3 : 2); // rise fast, fall slow
-        if (ny < 0) ny = 0;
-        if (ny > containerHeight - barHeight) ny = containerHeight - barHeight;
-        return ny;
-      });
-
-      // --------------------------
-      // CATCH METER
-      // --------------------------
-      const fishBottom = fishYRef.current + 20;
-      const barBottom = barYRef.current + barHeight;
-
-      const inside =
-        fishYRef.current >= barYRef.current &&
-        fishBottom <= barBottom;
-
-      console.log(
-        "Inside",
-        fishYRef.current,
-        barYRef.current,
-        fishBottom,
-        barBottom,
-        inside
-      );
-
-      if (inside) {
-        progressRef.current += 0.7 * dt;
-      } else {
-        progressRef.current -= 0.5 * dt;
-      }
-
-      progressRef.current = Math.max(0, Math.min(100, progressRef.current));
-      setProgress(progressRef.current);
-
-      requestAnimationFrame(loop);
-    };
-
-    const id = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(id);
-  }, []);
-
-  // --------------------------
+  // --------------------
   // SPACEBAR CONTROL
-  // --------------------------
+  // --------------------
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
-      if (e.code === "Space") holdingRef.current = true;
+      if (e.code === "Space") holding.current = true;
     };
     const up = (e: KeyboardEvent) => {
-      if (e.code === "Space") holdingRef.current = false;
+      if (e.code === "Space") holding.current = false;
     };
 
     window.addEventListener("keydown", down);
@@ -153,41 +78,132 @@ export function Fishing({ isVisible, onComplete }: FishingProps) {
     };
   }, []);
 
+  // --------------------
+  // GAME LOOP
+  // --------------------
+  useEffect(() => {
+    let last = performance.now();
+    let frame = 0;
+
+    const loop = (t: number) => {
+      const dt = (t - last) / 16;
+      last = t;
+
+      if (!finished.current) {
+        // --------------------
+        // FISH MOVEMENT
+        // --------------------
+        fishVelocity.current += (Math.random() - 0.5) * 0.4;
+        fishVelocity.current = Math.max(
+          Math.min(fishVelocity.current, 2),
+          -2
+        );
+
+        fishY.current += fishVelocity.current;
+        fishY.current = Math.max(
+          0,
+          Math.min(fishY.current, containerHeight - fishSize)
+        );
+
+        // --------------------
+        // BAR MOVEMENT
+        // --------------------
+        barY.current += holding.current ? -3 : 1;
+        barY.current = Math.max(
+          0,
+          Math.min(barY.current, containerHeight - barHeight)
+        );
+
+        // --------------------
+        // APPLY TRANSFORMS
+        // --------------------
+        fishEl.current!.style.transform = `translateY(${fishY.current}px)`;
+        barEl.current!.style.transform = `translateY(${barY.current}px)`;
+
+        // --------------------
+        // PROGRESS CHECK
+        // --------------------
+        const fishBottom = fishY.current + fishSize;
+        const barBottom = barY.current + barHeight;
+
+        const inside =
+          fishY.current >= barY.current &&
+          fishBottom <= barBottom;
+
+        progress.current += inside ? 0.6 * dt : -0.5 * dt;
+        progress.current = Math.max(0, Math.min(100, progress.current));
+
+        // --------------------
+        // THROTTLED UI UPDATE
+        // --------------------
+        frame++;
+        if (frame % 5 === 0) {
+          setProgressUI(progress.current);
+        }
+
+        // --------------------
+        // END CONDITIONS
+        // --------------------
+        if (progress.current >= 100) {
+          finished.current = true;
+          onComplete(true);
+          return;
+        }
+
+        if (progress.current <= 0) {
+          finished.current = true;
+          onComplete(false);
+          return;
+        }
+      }
+
+      requestAnimationFrame(loop);
+    };
+
+    const id = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(id);
+  }, [onComplete]);
+
+  // --------------------
+  // RENDER
+  // --------------------
   return (
-    <div 
-      className="fixed inset-0 z-40 flex items-center justify-center bg-background/50 backdrop-blur-sm"
-      >
+    <div className="fixed inset-0 z-40 flex items-center justify-center bg-background/50 backdrop-blur-sm">
       <div className="flex gap-6 p-6 items-center">
-        {/* Fishing bar container */}
+        {/* Fishing Tube */}
         <div
-          className="relative bg-blue-200 border-4 border-yellow-700 rounded-xl"
+          className="relative bg-blue-200 border-4 border-yellow-700 rounded-xl overflow-hidden"
           style={{ width: 90, height: containerHeight }}
         >
-          {/* Player green bar */}
+          {/* Player Bar */}
           <div
+            ref={barEl}
             className="absolute left-2 w-12 bg-green-400 rounded-md opacity-80"
             style={{
               height: barHeight,
-              top: barY,
-              transition: "top 0.05s linear",
+              willChange: "transform",
             }}
           />
 
-          {/* Fish icon */}
+          {/* Fish */}
           <div
-            className="absolute left-[50px] w-6 h-6 bg-blue-500 rounded-full border border-black"
-            style={{ top: fishY }}
+            ref={fishEl}
+            className="absolute left-[50px] w-5 h-5 bg-blue-500 rounded-full border border-black"
+            style={{
+              willChange: "transform",
+              imageRendering: "pixelated",
+            }}
           />
         </div>
 
-        {/* Progress bar */}
+        {/* Progress Bar */}
         <div
           className="relative w-6 bg-gray-300 border border-black rounded-xl"
           style={{ height: containerHeight }}
         >
           <div
             className="absolute bottom-0 w-full bg-green-500"
-            style={{ height: `${progress}%` }}
+            style={{ height: `${progressUI}%` }}
           />
         </div>
       </div>
