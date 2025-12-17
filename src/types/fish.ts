@@ -1,6 +1,6 @@
 export interface Fish {
   id: string;
-  species: 'pufferfish' | 'goldfish' | 'tetra';
+  species: 'pufferfish' | 'goldfish' | 'tetra' | 'beta';
   x: number;
   y: number;
   direction: number; // radians
@@ -11,4 +11,4 @@ export interface Fish {
 
 export type FishSpecies = Fish['species'];
 
-export const FISH_SPECIES: FishSpecies[] = ['pufferfish', 'goldfish', 'tetra'];
+export const FISH_SPECIES: FishSpecies[] = ['pufferfish', 'goldfish', 'tetra', 'beta'];

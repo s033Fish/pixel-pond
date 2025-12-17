@@ -11,6 +11,7 @@ const SPECIES_NAMES: Record<string, string> = {
   pufferfish: 'Pufferfish',
   goldfish: 'Goldfish',
   beta: 'Beta Fish',
+  tetra: 'Tetra'
 };
 
 const Index = () => {

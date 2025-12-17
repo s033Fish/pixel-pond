@@ -5,7 +5,7 @@ import { updateFishBehavior } from '@/lib/fishBehavior';
 import fishTankBg from '@/assets/fish-tank-bg.png';
 import pufferfishImg from '@/assets/pufferfish.png';
 import goldfishImg from '@/assets/goldfish.png';
-import betaImg from '@/assets/betafish.png';
+import betaImg from '@/assets/beta.png';
 import tetraImg from '@/assets/tetra.png';
 
 
@@ -142,6 +142,10 @@ export function AquariumCanvas({ fish, onFishUpdate, onFishClick }: AquariumCanv
     fish.forEach(f => {
       if (!spritesRef.current.has(f.id)) {
         const textureUrl = FISH_TEXTURES[f.species];
+        console.log("URL:", textureUrl)
+        if (textureUrl == undefined) {
+          return;
+        }
         const texture = PIXI.Texture.from(textureUrl);
         const sprite = new PIXI.Sprite(texture);
         
